@@ -79,17 +79,55 @@ class mahjongHand extends React.Component {
     };
 
     let tbody = [];
-    for (let i = 0; i < 1; i++) {
-      let cells = [];
-      for (let j = 0; j < this.props.G.wall.length; j++) {
+    let cells = [];
+    let header = ""
+    for (let j = 0; j < this.props.G.wall.length; j++) {
+      const id = j;
+      cells.push(
+        <td style={cellStyle} key={id}>
+          {this.props.G.wall[j].toString()}
+        </td>
+      );
+    }
+    tbody.push(<tr key="wall"><td>Wall</td>{cells}</tr>);
+
+    cells = [];
+    for (let j = 0; j < this.props.G.deadWall.length; j++) {
+      const id = j;
+      cells.push(
+        <td style={cellStyle} key={id}>
+          {this.props.G.deadWall[j].toString()}
+        </td>
+      );
+    }
+    tbody.push(<tr key="deadWall"><td>Dead Wall</td>{cells}</tr>);
+
+    for (let i = 0; i < this.props.G.players.length; i++) {
+      cells = [];
+      for (let j = 0; j < this.props.G.players[i].hand.length; j++) {
         const id = j;
         cells.push(
           <td style={cellStyle} key={id} onClick={() => this.onClick(id)}>
-            {this.props.G.wall[j].toString()}
+            {this.props.G.players[i].hand[j].toString()}
           </td>
         );
       }
-      tbody.push(<tr key={i}>{cells}</tr>);
+      header = "Player " + (i + 1)
+      tbody.push(<tr key="player{i}">{header}{cells}</tr>);
+    }
+
+    for (let i = 0; i < this.props.G.players.length; i++) {
+      cells = [];
+      for (let j = 0; j < this.props.G.players[i].pool.length; j++) {
+        const id = j;
+        cells.push(
+          <td style={cellStyle} key={id} onClick={() => this.onClick(id)}>
+            {this.props.G.players[i].pool[j].toString()}
+          </td>
+        );
+      }
+      header = "Player " + (i + 1) + "'s Pool"
+      tbody.push(<tr key="player{i}">{header}{cells}</tr>);
     }
 
     return (
@@ -108,11 +146,13 @@ const mahjong = Game({
     let wall = shuffleArray(Array.concat.apply([],suits.map(suit =>
                         values.map(value => (new tile(suit,value)))))
                         .concat(honors.map(honor => new tile(honor,""))));
+    let deadWall = wall.splice(wall.length-14)
+    let players = Array(4).fill(null).map(p => (new player(wall.splice(0,13))))
     let wallcount = wall.length;
-    let players = Array(4).fill(null).map(p => (new player(wall.splice(0,12))))
 
     return {
       wall,
+      deadWall,
       wallcount,
       players
     }
@@ -120,19 +160,17 @@ const mahjong = Game({
 
   moves: {
     discardTile(G, ctx, id) {
-      G.players[ctx.currentPlayer].hand.splice(id,id)
-    },
-
-    drawTile(G, ctx) {
-      if(G.players[ctx.currentPlayer].hand.length < 13){
-        G.players[ctx.currentPlayer].push(G.wall.shift())
-      }
+      G.players[ctx.currentPlayer].pool.push(G.players[ctx.currentPlayer].hand.splice(id,1))
     },
   },
 
   flow: {
-
-  }
+    onTurnBegin: (G, ctx) => {
+      if(G.players[ctx.currentPlayer].hand.length < 14){
+        G.players[ctx.currentPlayer].hand.push(G.wall.shift())
+      }
+    }
+  },
 });
 
 const App = Client({
